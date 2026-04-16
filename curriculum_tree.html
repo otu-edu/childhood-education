@@ -13,7 +13,7 @@ body{
 }
 .sw{background:#fff;box-shadow:0 2px 20px rgba(0,0,0,.12);overflow:hidden}
 .sw-inner{position:relative}
-.sc{position:relative;width:128606.61px;height:233423.93px;transform-origin:top left;background:#fff}
+.sc{position:relative;width:128606.61px;height:233423.93px;transform-origin:top left;background:#fff;will-change:transform}
 .s{position:absolute;overflow:hidden}
 .st{position:absolute;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;text-align:center;line-height:1.25;padding:0 8px}
 .st.at{justify-content:flex-start;padding-top:4px}
@@ -355,7 +355,7 @@ svg.cv{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none
 <div class="st ac course" style="left:71536.74px;top:44070.74px;width:12248.02px;height:1341.95px;background:transparent;border:none" data-dai="保育・教育の基礎" data-sho="制度・社会" data-gak="3年次">
 <div class="p ac"><span style="font-size:800.10px;">保★心★</span></div>
 </div>
-<div class="st ac label-click" style="left:800.02px;top:60157.99px;width:4703.96px;height:4437.69px;background:transparent;border:none" data-filter-type="dai" data-filter-value="子ども理解">
+<div class="st ac label-click" style="left:800.02px;top:60172.47px;width:4703.96px;height:4437.69px;background:transparent;border:none" data-filter-type="dai" data-filter-value="子ども理解">
 <div class="p ac"><span class="b" style="font-size:985.52px;">子ども</span></div>
 <div class="p ac"><span class="b" style="font-size:985.52px;">理解</span></div>
 </div>
@@ -833,9 +833,13 @@ svg.cv{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none
 <script>
 (function(){
   var c=document.querySelector('.sc'),w=document.querySelector('.sw');
+  var inner=document.querySelector('.sw-inner');
+  var zlbl=document.getElementById('zlbl');
   var sW=128606.61,sH=233423.93;
   var scale=1,minS=0.002,maxS=0.12;
   var baseScale;
+  var courses=document.querySelectorAll('.course');
+  var labels=document.querySelectorAll('.label-click');
 
   function calcFitAll(){
     var vW=window.innerWidth-20,vH=window.innerHeight-20;
@@ -845,32 +849,38 @@ svg.cv{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none
     return (window.innerWidth-20)/sW;
   }
 
+  var rafPending=false;
   function applyScale(){
     if(scale<minS)scale=minS;
     if(scale>maxS)scale=maxS;
-    c.style.transform='scale('+scale+')';
-    var cW=Math.ceil(sW*scale);
-    var cH=Math.ceil(sH*scale);
-    var vW=window.innerWidth-20;
-    var vH=window.innerHeight-20;
-    var inner=document.querySelector('.sw-inner');
-    inner.style.width=cW+'px';
-    inner.style.height=cH+'px';
-    if(cW>vW||cH>vH){
-      w.style.width=Math.min(cW,vW)+'px';
-      w.style.height=Math.min(cH,vH)+'px';
-      w.style.overflow='auto';
-    }else{
-      w.style.width=cW+'px';
-      w.style.height=cH+'px';
-      w.style.overflow='hidden';
-    }
-    document.getElementById('zlbl').textContent=Math.round(scale/baseScale*100)+'%';
+    if(rafPending) return;
+    rafPending=true;
+    requestAnimationFrame(function(){
+      rafPending=false;
+      c.style.transform='scale('+scale+')';
+      var cW=Math.ceil(sW*scale);
+      var cH=Math.ceil(sH*scale);
+      var vW=window.innerWidth-20;
+      var vH=window.innerHeight-20;
+      inner.style.width=cW+'px';
+      inner.style.height=cH+'px';
+      if(cW>vW||cH>vH){
+        w.style.width=Math.min(cW,vW)+'px';
+        w.style.height=Math.min(cH,vH)+'px';
+        w.style.overflow='auto';
+      }else{
+        w.style.width=cW+'px';
+        w.style.height=cH+'px';
+        w.style.overflow='hidden';
+      }
+      zlbl.textContent=Math.round(scale/baseScale*100)+'%';
+    });
   }
 
   function init(){
     baseScale=calcFitWidth();
     scale=baseScale;
+    rafPending=false;
     applyScale();
   }
 
@@ -917,13 +927,13 @@ svg.cv{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none
   init();
 
   // ===== Filtering (highlight) =====
-  var sc=document.querySelector('.sc');
+  var sc=c;
   var badge=document.getElementById('filter-badge');
   var activeFilter=null;
 
   function clearFilter(){
     sc.classList.remove('filtering');
-    document.querySelectorAll('.course.highlighted').forEach(function(el){el.classList.remove('highlighted')});
+    for(var i=0;i<courses.length;i++) courses[i].classList.remove('highlighted');
     badge.style.display='none';
     activeFilter=null;
   }
@@ -933,27 +943,30 @@ svg.cv{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none
       clearFilter(); return;
     }
     sc.classList.add('filtering');
-    document.querySelectorAll('.course').forEach(function(el){
+    for(var i=0;i<courses.length;i++){
+      var el=courses[i];
       el.classList.remove('highlighted');
       var match=false;
       if(type==='dai') match=(el.dataset.dai===value);
       else if(type==='sho') match=(el.dataset.sho===value);
       else if(type==='gak') match=(el.dataset.gak&&el.dataset.gak.split(',').indexOf(value)>=0);
       if(match) el.classList.add('highlighted');
-    });
+    }
     badge.textContent=value+' ✕';
     badge.style.display='block';
     activeFilter={type:type,value:value};
   }
 
-  document.querySelectorAll('.label-click').forEach(function(el){
-    el.addEventListener('click',function(e){
-      e.stopPropagation();
-      var ft=el.dataset.filterType;
-      var fv=el.dataset.filterValue;
-      if(ft&&fv) applyFilter(ft,fv);
-    });
-  });
+  for(var i=0;i<labels.length;i++){
+    (function(el){
+      el.addEventListener('click',function(e){
+        e.stopPropagation();
+        var ft=el.dataset.filterType;
+        var fv=el.dataset.filterValue;
+        if(ft&&fv) applyFilter(ft,fv);
+      });
+    })(labels[i]);
+  }
 
   badge.addEventListener('click',clearFilter);
   sc.addEventListener('click',function(e){
