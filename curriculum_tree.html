@@ -843,8 +843,8 @@ svg.cv{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none
   var sW=128606.61,sH=233423.93;
   var scale=1,minS=0.002,maxS=0.12;
   var baseScale;
-  var courses=document.querySelectorAll('.course');
-  var labels=document.querySelectorAll('.label-click');
+  var courses=null;
+  var labels=null;
 
   function calcFitAll(){
     var vW=window.innerWidth-20,vH=window.innerHeight-20;
@@ -931,67 +931,72 @@ svg.cv{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none
   window.addEventListener('resize',function(){ baseScale=calcFitWidth(); });
   init();
 
-  // ===== Filtering (highlight) =====
-  var sc=c;
-  var badge=document.getElementById('filter-badge');
-  var activeFilter=null;
+  // ===== Filtering & Help (PC only, skip on mobile to save memory) =====
+  var isMobile=window.innerWidth<=768;
+  if(!isMobile){
+    courses=document.querySelectorAll('.course');
+    labels=document.querySelectorAll('.label-click');
+    var sc=c;
+    var badge=document.getElementById('filter-badge');
+    var activeFilter=null;
 
-  function clearFilter(){
-    sc.classList.remove('filtering');
-    for(var i=0;i<courses.length;i++) courses[i].classList.remove('highlighted');
-    badge.style.display='none';
-    activeFilter=null;
-  }
-
-  function applyFilter(type,value){
-    if(activeFilter && activeFilter.type===type && activeFilter.value===value){
-      clearFilter(); return;
+    function clearFilter(){
+      sc.classList.remove('filtering');
+      for(var i=0;i<courses.length;i++) courses[i].classList.remove('highlighted');
+      badge.style.display='none';
+      activeFilter=null;
     }
-    sc.classList.add('filtering');
-    for(var i=0;i<courses.length;i++){
-      var el=courses[i];
-      el.classList.remove('highlighted');
-      var match=false;
-      if(type==='dai') match=(el.dataset.dai===value);
-      else if(type==='sho') match=(el.dataset.sho===value);
-      else if(type==='gak') match=(el.dataset.gak&&el.dataset.gak.split(',').indexOf(value)>=0);
-      if(match) el.classList.add('highlighted');
+
+    function applyFilter(type,value){
+      if(activeFilter && activeFilter.type===type && activeFilter.value===value){
+        clearFilter(); return;
+      }
+      sc.classList.add('filtering');
+      for(var i=0;i<courses.length;i++){
+        var el=courses[i];
+        el.classList.remove('highlighted');
+        var match=false;
+        if(type==='dai') match=(el.dataset.dai===value);
+        else if(type==='sho') match=(el.dataset.sho===value);
+        else if(type==='gak') match=(el.dataset.gak&&el.dataset.gak.split(',').indexOf(value)>=0);
+        if(match) el.classList.add('highlighted');
+      }
+      badge.textContent=value+' ✕';
+      badge.style.display='block';
+      activeFilter={type:type,value:value};
     }
-    badge.textContent=value+' ✕';
-    badge.style.display='block';
-    activeFilter={type:type,value:value};
-  }
 
-  for(var i=0;i<labels.length;i++){
-    (function(el){
-      el.addEventListener('click',function(e){
-        e.stopPropagation();
-        var ft=el.dataset.filterType;
-        var fv=el.dataset.filterValue;
-        if(ft&&fv) applyFilter(ft,fv);
-      });
-    })(labels[i]);
-  }
-
-  badge.addEventListener('click',clearFilter);
-  sc.addEventListener('click',function(e){
-    if(!e.target.closest('.label-click')&&!e.target.closest('.zoom-controls')){
-      clearFilter();
+    for(var i=0;i<labels.length;i++){
+      (function(el){
+        el.addEventListener('click',function(e){
+          e.stopPropagation();
+          var ft=el.dataset.filterType;
+          var fv=el.dataset.filterValue;
+          if(ft&&fv) applyFilter(ft,fv);
+        });
+      })(labels[i]);
     }
-  });
 
-  // ===== Help modal =====
-  var helpBtn=document.getElementById('help-btn');
-  var helpModal=document.getElementById('help-modal');
-  var helpClose=document.getElementById('help-modal-close');
-  helpBtn.addEventListener('click',function(){helpModal.classList.add('open');});
-  helpClose.addEventListener('click',function(){helpModal.classList.remove('open');});
-  helpModal.addEventListener('click',function(e){
-    if(e.target===helpModal) helpModal.classList.remove('open');
-  });
-  document.addEventListener('keydown',function(e){
-    if(e.key==='Escape') helpModal.classList.remove('open');
-  });
+    badge.addEventListener('click',clearFilter);
+    sc.addEventListener('click',function(e){
+      if(!e.target.closest('.label-click')&&!e.target.closest('.zoom-controls')){
+        clearFilter();
+      }
+    });
+
+    // Help modal
+    var helpBtn=document.getElementById('help-btn');
+    var helpModal=document.getElementById('help-modal');
+    var helpClose=document.getElementById('help-modal-close');
+    helpBtn.addEventListener('click',function(){helpModal.classList.add('open');});
+    helpClose.addEventListener('click',function(){helpModal.classList.remove('open');});
+    helpModal.addEventListener('click',function(e){
+      if(e.target===helpModal) helpModal.classList.remove('open');
+    });
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape') helpModal.classList.remove('open');
+    });
+  }
 })();
 </script>
 </body></html>
